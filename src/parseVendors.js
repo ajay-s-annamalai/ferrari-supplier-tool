@@ -34,8 +34,19 @@ function normalizeKey(k) {
   return k.toLowerCase().replace(/[\s_-]+/g, "_");
 }
 
+export async function parseExcelUrl(url) {
+  const res = await fetch(url);
+  if (!res.ok) throw new Error(`Could not load ${url} (${res.status})`);
+  const buf = await res.arrayBuffer();
+  return parseBuffer(buf);
+}
+
 export async function parseExcelFile(file) {
   const buf = await file.arrayBuffer();
+  return parseBuffer(buf);
+}
+
+async function parseBuffer(buf) {
   const wb = XLSX.read(buf, { type: "array" });
   const ws = wb.Sheets[wb.SheetNames[0]];
   const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });

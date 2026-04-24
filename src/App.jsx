@@ -1,6 +1,6 @@
-import { useState, useMemo, useRef } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { matchFilter } from "./utils";
-import { parseExcelFile } from "./parseVendors";
+import { parseExcelFile, parseExcelUrl } from "./parseVendors";
 import Card from "./components/Card";
 import Drawer from "./components/Drawer";
 
@@ -14,13 +14,19 @@ const FILTER_DEFS = [
 
 export default function App() {
   const [vendors, setVendors] = useState([]);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Auto-load the bundled Excel file on first render
+  useEffect(() => {
+    parseExcelUrl("/vendors.xlsx")
+      .then(data => { setVendors(data); setLoading(false); })
+      .catch(e => { setError(e.message); setLoading(false); });
+  }, []);
   const [tab, setTab] = useState(null);
   const [filters, setFilters] = useState([]);
   const [search, setSearch] = useState("");
   const [sel, setSel] = useState(null);
-  const [drag, setDrag] = useState(false);
   const fileInputRef = useRef();
 
   // Derive tabs dynamically from the data
@@ -107,51 +113,28 @@ export default function App() {
   }
 
   function onFileInput(e) { handleFile(e.target.files[0]); }
-  function onDrop(e) {
-    e.preventDefault();
-    setDrag(false);
-    handleFile(e.dataTransfer.files[0]);
+
+  // ── Loading ───────────────────────────────────────────────────────────────
+  if (loading) {
+    return (
+      <div className="loading">
+        <div className="loading-spinner" />
+        <div style={{ fontFamily: "'DM Mono', monospace", fontSize: 11, color: "var(--lt)", letterSpacing: 1 }}>
+          LOADING VENDOR DATA…
+        </div>
+      </div>
+    );
   }
 
-  // ── No data yet: show upload screen ──────────────────────────────────────
-  if (vendors.length === 0) {
+  // ── Error ─────────────────────────────────────────────────────────────────
+  if (error) {
     return (
-      <>
-        <div className="hdr">
-          <div className="hdr-l">
-            <div className="shield" />
-            <div>
-              <div className="brand">Ferrari Innovation Lab</div>
-              <div className="brand-sub">Bay Area Supplier Intelligence · Apr 2026</div>
-            </div>
-          </div>
-          <div className="warn-pill">⚠ All certs pending verification</div>
-        </div>
-
-        <div
-          className={"upload-zone" + (drag ? " drag" : "")}
-          onDragOver={e => { e.preventDefault(); setDrag(true); }}
-          onDragLeave={() => setDrag(false)}
-          onDrop={onDrop}
-          onClick={() => fileInputRef.current.click()}
-        >
-          <div className="upload-icon">📊</div>
-          <div className="upload-title">Drop your vendor Excel file here</div>
-          <div className="upload-sub">
-            The file should have one row per vendor.<br />
-            Required columns: <strong>Name, City, Profile, Subsystems, Processes</strong><br />
-            Optional: Tolerance, Tolerance_Num, Lead_Time, MOQ, ISO_9001, AS9100, ITAR, URL
-          </div>
-          <button className="upload-btn" onClick={e => { e.stopPropagation(); fileInputRef.current.click(); }}>
-            Choose File
-          </button>
-          <div className="upload-hint">Supports .xlsx and .xls</div>
-          {loading && <div style={{ marginTop: 16, color: "var(--mid)", fontSize: 12 }}>Parsing…</div>}
-          {error   && <div style={{ marginTop: 16, color: "var(--red)", fontSize: 12 }}>⚠ {error}</div>}
-        </div>
-
-        <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={onFileInput} />
-      </>
+      <div className="empty">
+        <div className="e-ico">⚠</div>
+        <div className="e-t">Could not load vendors.xlsx</div>
+        <div className="e-s" style={{ color: "var(--red)", marginBottom: 16 }}>{error}</div>
+        <div className="e-s">Make sure <code>public/vendors.xlsx</code> exists in the repo.</div>
+      </div>
     );
   }
 
@@ -166,16 +149,7 @@ export default function App() {
             <div className="brand-sub">Bay Area Supplier Intelligence · Apr 2026</div>
           </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <button
-            className="upload-btn"
-            style={{ fontSize: 8, padding: "4px 10px", letterSpacing: 1 }}
-            onClick={() => fileInputRef.current.click()}
-          >
-            ↑ Reload Data
-          </button>
-          <div className="warn-pill">⚠ All certs pending verification</div>
-        </div>
+        <div className="warn-pill">⚠ All certs pending verification</div>
         <input ref={fileInputRef} type="file" accept=".xlsx,.xls" style={{ display: "none" }} onChange={onFileInput} />
       </div>
 
