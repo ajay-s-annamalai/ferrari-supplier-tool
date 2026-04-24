@@ -1,0 +1,452 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ferrari Innovation Lab – Bay Area Supplier Intelligence</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo } = React;
+
+    const VENDORS = [
+      { name: "Precision Parts International (PPI)", city: "Fremont, CA", tol: '±0.0001"', tn: 0.0001, lead: "3–7 days", moq: "1 pc", iso: true, as9100: true, itar: true, comp: "High", subs: ["ADAS","Electrification","Materials"], procs: ["5-axis CNC milling","Swiss CNC turning","EDM","CMM","Optical inspection"], url: "https://www.ppiparts.com" },
+      { name: "ProtoCAM West (Bay Area Div.)", city: "Milpitas, CA", tol: '±0.0002"', tn: 0.0002, lead: "5–10 days", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "High", subs: ["ADAS"], procs: ["5-axis CNC milling","Precision turning","Fixture machining","SPC reporting"], url: "https://www.protocam.com" },
+      { name: "RivCut CNC Machinery", city: "Union City, CA", tol: '±0.0005"', tn: 0.0005, lead: "3–7 days", moq: "1 pc", iso: true, as9100: true, itar: true, comp: "High", subs: ["ADAS","Electrification","Materials","Mobility"], procs: ["3-/5-axis CNC milling","CNC turning","CMM inspection","Anodize","Bead blast"], url: "https://rivcut.com" },
+      { name: "Vanderhulst Associates, Inc.", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "High", subs: ["ADAS","Battery","Materials","Mobility"], procs: ["3-/4-/5-axis CNC milling","CNC turning","CMM metrology","Assembly","Finishing"], url: "https://www.vanderhulst.com" },
+      { name: "Halcyon Manufacturing, Inc.", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: true, itar: true, comp: "High", subs: ["ADAS","Battery","Mobility"], procs: ["5-axis CNC milling","CNC turning"], url: "" },
+      { name: "Apex Machining, Inc.", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "Medium", subs: ["ADAS","Electrification","Battery","Materials","Mobility"], procs: ["CNC milling","CNC turning","Inspection","Assembly"], url: "https://www.apex-machining.com" },
+      { name: "Advanced Mfg. (L&S Machine Co.)", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–6 weeks", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "Medium", subs: ["ADAS","Materials","Mobility"], procs: ["3-axis and 5-axis CNC milling"], url: "" },
+      { name: "Optima Precision, Inc.", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–3 weeks", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "Medium", subs: ["ADAS","Electrification","Materials","Mobility"], procs: ["CNC milling","CNC turning"], url: "" },
+      { name: "Bay Precision Machining", city: "Fremont, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–5 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["ADAS","Materials","Mobility"], procs: ["CNC milling (3/4/5-axis)","CNC turning","Jig & fixture machining"], url: "" },
+      { name: "Promex Industries", city: "Santa Clara, CA", tol: "Micron-level", tn: 0.00004, lead: "4–8 weeks", moq: "Proto", iso: true, as9100: false, itar: true, comp: "High", subs: ["ADAS"], procs: ["Microelectronic assembly","SMT","Wafer processing","Die prep"], url: "" },
+      { name: "Pacific Precision Labs", city: "Santa Clara, CA", tol: '±0.0005"', tn: 0.0005, lead: "1–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Electrification"], procs: ["CNC milling","CNC turning","Thermal component machining (Cu, Al)","CMM"], url: "https://www.pacificprecisionlabs.com" },
+      { name: "Silicon Valley Elite Mfg. (SVEM)", city: "Santa Clara, CA", tol: '±0.0005"', tn: 0.0005, lead: "1–3 weeks", moq: "1 pc", iso: false, as9100: false, itar: false, comp: "Medium", subs: ["Electrification","Battery","Materials","Mobility"], procs: ["CNC milling","CNC turning","Multi-axis","Assembly"], url: "https://svemfg.com" },
+      { name: "HD Machining (HDManufacturing)", city: "Fremont, CA", tol: '±0.001"', tn: 0.001, lead: "1–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: true, comp: "Medium", subs: ["Electrification","Materials","Mobility"], procs: ["3-/5-axis CNC milling","CNC turning","Sheet metal proto fab"], url: "https://hdmachinings.com" },
+      { name: "Metal Storm, Inc.", city: "Fremont, CA", tol: '±0.005"', tn: 0.005, lead: "1–2 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Electrification"], procs: ["Sheet metal fab (laser, punch, brake)","Welding","Electromechanical enclosures"], url: "" },
+      { name: "Thermagon Bay (ThermalFab West)", city: "San Jose, CA", tol: '±0.002"', tn: 0.002, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Electrification","Battery"], procs: ["Thermal component fabrication","Cold plate machining","Heat sink fab"], url: "" },
+      { name: "AlphaEMS Corp.", city: "Fremont, CA", tol: "—", tn: null, lead: "2–6 weeks", moq: "Proto–mid vol", iso: true, as9100: false, itar: true, comp: "High", subs: ["Electrification"], procs: ["PCBA","Box build","Electromechanical assembly","System integration"], url: "" },
+      { name: "Bentek, Inc.", city: "San Jose, CA", tol: "N/A", tn: null, lead: "4–8 weeks", moq: "Low vol", iso: false, as9100: false, itar: false, comp: "Medium", subs: ["Electrification"], procs: ["Electromechanical assembly","Power distribution systems"], url: "" },
+      { name: "Sonic Manufacturing Technologies", city: "Fremont, CA", tol: "—", tn: null, lead: "3–6 weeks", moq: "Proto–mid vol", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Electrification"], procs: ["PCBA","Box build","Full EMS"], url: "" },
+      { name: "Bay Area Metal Works (BAMW)", city: "Hayward, CA", tol: '±0.005" forming', tn: 0.005, lead: "1–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Battery"], procs: ["Sheet metal fab","CNC press brake","MIG/TIG welding","Battery enclosure structurals","Leak testing"], url: "https://www.bamw.com" },
+      { name: "Enclosures West (CalFab)", city: "Morgan Hill, CA", tol: '±0.005"', tn: 0.005, lead: "1–2 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Battery"], procs: ["Sheet metal enclosure fab","CNC punch","Laser cut","Spot welding"], url: "https://www.enclosureswest.com" },
+      { name: "Responsible Metal Fab (RMFI)", city: "Sunnyvale, CA", tol: '±0.005" forming', tn: 0.005, lead: "1–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Battery","Electrification","Mobility"], procs: ["CNC punch","Laser cut","CNC press brake","Welding","Hardware insertion"], url: "https://responsiblemetal.com" },
+      { name: "West Fab Sheet Metal", city: "Santa Clara, CA", tol: '±0.005"', tn: 0.005, lead: "1–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Battery","Electrification","Mobility"], procs: ["CNC punch","Laser cut","Press brake forming","Welding"], url: "https://westfab.com" },
+      { name: "United Mechanical, Inc. (U-MEC)", city: "Hayward, CA", tol: '±0.005"', tn: 0.005, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Battery","Electrification","Mobility"], procs: ["Precision sheet metal fab","CNC punch","Press brake","Welding"], url: "https://umec.net" },
+      { name: "West Coast Welding & Fabrication", city: "San Jose, CA", tol: '±0.010" weld', tn: 0.010, lead: "2–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Battery"], procs: ["TIG/MIG welding","Structural fabrication","Sealed assembly welding"], url: "" },
+      { name: "Advanced Thermal Solutions West", city: "San Jose, CA", tol: '±0.002"', tn: 0.002, lead: "2–5 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Battery"], procs: ["Thermal fabrication","Cold plate manufacturing","CNC aluminum machining"], url: "" },
+      { name: "Cooling Source, Inc.", city: "Livermore, CA", tol: "Std thermal", tn: null, lead: "3–8 weeks", moq: "1 pc", iso: false, as9100: false, itar: false, comp: "Low", subs: ["Electrification","Battery"], procs: ["Custom heat sinks","Liquid cold plates","Extrusion","Bonded fin"], url: "" },
+      { name: "Exotic Metals & Machining (EMM)", city: "Fremont, CA", tol: '±0.0002"', tn: 0.0002, lead: "1–4 weeks", moq: "1 pc", iso: true, as9100: true, itar: true, comp: "High", subs: ["Materials","ADAS"], procs: ["CNC machining (exotic alloys)","EDM wire/sinker","Prototype machining","Surface grinding","CMM"], url: "https://www.exoticmetals.com" },
+      { name: "LNP Machining & Engineering", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: false, itar: true, comp: "Medium", subs: ["Materials","ADAS"], procs: ["3-/4-/5-axis CNC milling","Anodizing","Coating","Finishing"], url: "https://www.lnpmachining.com" },
+      { name: "CompositesOne Fabrication", city: "Fremont, CA", tol: '±0.010" post-cure', tn: 0.010, lead: "3–6 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Materials"], procs: ["CFRP layup","Autoclave cure","Wet layup","Prepreg processing"], url: "" },
+      { name: "Pacific Coast Composites (PCC)", city: "San Leandro, CA", tol: '±0.015" layup', tn: 0.015, lead: "3–5 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Materials"], procs: ["Composites fabrication","Hand layup","VARTM","CNC carbon fiber trimming"], url: "" },
+      { name: "ACP Composites, Inc.", city: "Livermore, CA", tol: '±0.010" typical', tn: 0.010, lead: "2–6 weeks", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "High", subs: ["Materials"], procs: ["Composite layup","Autoclave cure","Oven cure","Press cure"], url: "" },
+      { name: "Bay Composites & Prototyping", city: "Milpitas, CA", tol: '±0.010"', tn: 0.010, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Materials"], procs: ["Composites prototyping","CNC routing CFRP","Short-run fabrication"], url: "" },
+      { name: "Raven Industries (Prototype Div.)", city: "San Jose, CA", tol: '±0.0005"', tn: 0.0005, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: true, itar: false, comp: "High", subs: ["Mobility","ADAS"], procs: ["CNC milling","Multi-axis turning","Vehicle integration enclosures","CMM"], url: "https://www.ravenindustries.com" },
+      { name: "Western Prototype & Fabrication", city: "San Jose, CA", tol: '±0.002"', tn: 0.002, lead: "1–2 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Mobility"], procs: ["Prototype CNC machining","Sheet metal prototyping","Enclosure fabrication"], url: "https://www.westernprototype.com" },
+      { name: "Silicon Valley Prototype & Fab", city: "Mountain View, CA", tol: '±0.001"', tn: 0.001, lead: "1–3 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "High", subs: ["Mobility"], procs: ["CNC prototype machining","Rapid fixture building","Enclosure prototyping"], url: "https://www.svprototype.com" },
+      { name: "Group Manufacturing Services (GMS)", city: "San Jose, CA", tol: '±0.005" / ±0.001" CNC', tn: 0.005, lead: "2–4 weeks", moq: "1 pc", iso: false, as9100: false, itar: false, comp: "Medium", subs: ["Battery","Electrification","Materials","Mobility"], procs: ["Sheet metal fab (laser, punch, press brake)","CNC mill/turn","Mechanical assembly"], url: "https://groupmanufacturing.com" },
+      { name: "Peninsular Engineering & Mfg", city: "Redwood City, CA", tol: '±0.001"', tn: 0.001, lead: "2–4 weeks", moq: "1 pc", iso: true, as9100: false, itar: false, comp: "Medium", subs: ["Mobility"], procs: ["CNC milling","Turning","Vehicle integration bracket and enclosure fab"], url: "" },
+      { name: "Advanced Tech Machining", city: "Fremont, CA (claimed)", tol: "—", tn: null, lead: "—", moq: "—", iso: false, as9100: false, itar: false, comp: "Low", subs: ["Pending"], procs: ["CNC machining (semiconductor focus)"], url: "https://www.advancedtechmachining.com" },
+      { name: "NEO Tech (Fremont facility)", city: "Fremont, CA", tol: "—", tn: null, lead: "—", moq: "—", iso: false, as9100: false, itar: false, comp: "Low", subs: ["Pending"], procs: ["EMS","Defense/aerospace","Medical"], url: "https://neotech.com" },
+      { name: "Absolute EMS", city: "Santa Clara, CA", tol: "—", tn: null, lead: "—", moq: "—", iso: false, as9100: false, itar: false, comp: "Low", subs: ["Pending"], procs: ["PCBA","ISO 9001 claimed (unverified)"], url: "https://www.absoluteems.com" },
+      { name: "Benchmark Electronics – Concord", city: "Concord, CA (~55 mi)", tol: "—", tn: null, lead: "—", moq: "—", iso: false, as9100: false, itar: false, comp: "Low", subs: ["Pending"], procs: ["EMS","ISO 9001","AS9100","ITAR (corporate-level)"], url: "https://www.bench.com" },
+    ];
+
+    const SUBS = ["ADAS","Electrification","Battery","Materials","Mobility","Pending"];
+    const SUB_DESC = {
+      ADAS: "Precision & alignment-critical sensor housings",
+      Electrification: "High-current, thermally demanding components",
+      Battery: "Enclosures, weld-certified, sealed/pressure-tested",
+      Materials: "Advanced alloys, ceramics & composites R&D",
+      Mobility: "Vehicle integration & fit-check enclosures",
+      Pending: "Unverified vendors requiring follow-up action",
+    };
+    const FILTER_DEFS = [
+      { id: "high",   label: "High Profile" },
+      { id: "as9100", label: "AS9100" },
+      { id: "itar",   label: "ITAR Registered" },
+      { id: "multi",  label: "Multi-Role" },
+      { id: "fast",   label: "Fast Lead Time" },
+    ];
+
+    function matchFilter(v, f) {
+      if (f === "high")   return v.comp === "High";
+      if (f === "as9100") return v.as9100;
+      if (f === "itar")   return v.itar;
+      if (f === "multi")  return v.subs.filter(s => s !== "Pending").length >= 3;
+      if (f === "fast")   return v.lead.includes("day") || v.lead === "1–2 weeks" || v.lead === "1–3 weeks";
+      return true;
+    }
+
+    function tolPct(t) {
+      if (!t) return 0;
+      const mn = Math.log10(0.00004), mx = Math.log10(0.020);
+      return Math.max(4, Math.round(100 - ((Math.log10(t) - mn) / (mx - mn)) * 88));
+    }
+
+    function region(city) {
+      const c = city.toLowerCase();
+      if (c.includes("san jose") || c.includes("milpitas") || c.includes("santa clara") || c.includes("sunnyvale") || c.includes("morgan hill")) return "South Bay";
+      if (c.includes("fremont") || c.includes("hayward") || c.includes("union city") || c.includes("san leandro") || c.includes("livermore")) return "East Bay";
+      if (c.includes("mountain view") || c.includes("redwood")) return "Peninsula";
+      return "Bay Area";
+    }
+
+    const CSS = `
+    @import url('https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap');
+    :root{--red:#CC0000;--rl:#fdf0f0;--rm:rgba(204,0,0,0.09);--black:#111;--dk:#333;--mid:#666;--lt:#999;--line:#e5e5e5;--bg:#f5f4f2;--white:#fff;--green:#1a6b3c;--amber:#8a5000;}
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
+    .app{font-family:'DM Sans',sans-serif;background:var(--white);color:var(--black);min-height:100vh;}
+    .hdr{background:var(--black);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;border-bottom:3px solid var(--red);}
+    .hdr-l{display:flex;align-items:center;gap:12px;}
+    .shield{width:28px;height:34px;background:var(--red);clip-path:polygon(0 0,100% 0,100% 72%,50% 100%,0 72%);flex-shrink:0;}
+    .brand{font-family:'Bebas Neue',sans-serif;font-size:20px;letter-spacing:4px;color:var(--white);line-height:1;}
+    .brand-sub{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.4);letter-spacing:2px;margin-top:2px;}
+    .warn-pill{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;background:var(--red);color:var(--white);padding:4px 10px;border-radius:2px;}
+    .metrics{display:flex;border-bottom:1px solid var(--line);}
+    .met{flex:1;padding:18px 22px;border-right:1px solid var(--line);cursor:default;transition:background .15s;}
+    .met:last-child{border-right:none;}
+    .met:hover{background:var(--bg);}
+    .mval{font-family:'Bebas Neue',sans-serif;font-size:34px;color:var(--red);line-height:1;}
+    .mlbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--lt);letter-spacing:1.5px;text-transform:uppercase;margin-top:3px;}
+    .tabs{display:flex;background:var(--white);border-bottom:1px solid var(--line);padding:0 28px;overflow-x:auto;}
+    .tab{display:flex;flex-direction:column;align-items:flex-start;padding:14px 18px 11px;cursor:pointer;border-bottom:3px solid transparent;transition:all .15s;white-space:nowrap;user-select:none;gap:2px;}
+    .tab:hover{background:var(--bg);}
+    .tab.on{border-bottom-color:var(--red);}
+    .tab-n{font-family:'DM Mono',monospace;font-size:10px;font-weight:500;letter-spacing:1px;color:var(--lt);text-transform:uppercase;transition:color .15s;}
+    .tab.on .tab-n,.tab:hover .tab-n{color:var(--black);}
+    .tab-c{font-family:'Bebas Neue',sans-serif;font-size:20px;color:var(--line);line-height:1;transition:color .15s;}
+    .tab.on .tab-c,.tab:hover .tab-c{color:var(--red);}
+    .toolbar{display:flex;align-items:center;gap:8px;padding:10px 28px;background:var(--bg);border-bottom:1px solid var(--line);flex-wrap:wrap;}
+    .t-lbl{font-family:'DM Mono',monospace;font-size:8px;color:var(--lt);letter-spacing:1.5px;text-transform:uppercase;flex-shrink:0;}
+    .chip{font-family:'DM Mono',monospace;font-size:9px;letter-spacing:.5px;padding:5px 12px;border-radius:3px;border:1px solid var(--line);background:var(--white);color:var(--mid);cursor:pointer;transition:all .15s;white-space:nowrap;}
+    .chip:hover{border-color:var(--black);color:var(--black);}
+    .chip.on{background:var(--black);color:var(--white);border-color:var(--black);}
+    .srch-wrap{margin-left:auto;position:relative;}
+    .srch{font-family:'DM Mono',monospace;font-size:10px;background:var(--white);border:1px solid var(--line);color:var(--black);padding:6px 12px 6px 28px;border-radius:3px;width:200px;outline:none;transition:border-color .15s;}
+    .srch:focus{border-color:var(--black);}
+    .srch::placeholder{color:var(--lt);}
+    .sico{position:absolute;left:9px;top:50%;transform:translateY(-50%);font-size:12px;color:var(--lt);}
+    .rbar{display:flex;align-items:center;justify-content:space-between;padding:9px 28px;border-bottom:1px solid var(--line);}
+    .rinfo{font-size:12px;color:var(--mid);}
+    .rinfo strong{color:var(--black);font-weight:600;}
+    .rdesc{font-family:'DM Mono',monospace;font-size:8px;color:var(--lt);letter-spacing:1px;}
+    .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--line);}
+    .card{background:var(--white);padding:18px 20px;cursor:pointer;transition:background .12s;position:relative;animation:ci .2s ease both;}
+    .card:hover{background:var(--bg);}
+    .card.mr{border-top:3px solid var(--red);}
+    @keyframes ci{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+    .c-head{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;margin-bottom:5px;}
+    .c-name{font-size:13px;font-weight:600;color:var(--black);line-height:1.3;flex:1;}
+    .badge{font-family:'DM Mono',monospace;font-size:7px;letter-spacing:1px;padding:3px 7px;border-radius:2px;flex-shrink:0;}
+    .bH{background:#eaf5ef;color:var(--green);border:1px solid #b8dfc8;}
+    .bM{background:#fef5e7;color:var(--amber);border:1px solid #f5d99a;}
+    .bL{background:var(--rl);color:var(--red);border:1px solid #f5b8b8;}
+    .c-loc{font-family:'DM Mono',monospace;font-size:9px;color:var(--lt);margin-bottom:10px;}
+    .c-procs{font-size:11px;color:var(--mid);line-height:1.5;margin-bottom:11px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;}
+    .c-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:11px;}
+    .tag{font-family:'DM Mono',monospace;font-size:7px;padding:2px 6px;border-radius:2px;}
+    .tg{background:#eaf5ef;color:var(--green);border:1px solid #b8dfc8;}
+    .ta{background:#fef5e7;color:var(--amber);border:1px solid #f5d99a;}
+    .tm{background:var(--rl);color:var(--red);border:1px solid #f5b8b8;font-weight:500;}
+    .mr-flag{position:absolute;top:0;right:16px;font-family:'DM Mono',monospace;font-size:7px;letter-spacing:1px;background:var(--red);color:var(--white);padding:3px 7px;}
+    .tol-h{display:flex;justify-content:space-between;margin-bottom:4px;}
+    .tol-k{font-family:'DM Mono',monospace;font-size:8px;color:var(--lt);letter-spacing:1px;text-transform:uppercase;}
+    .tol-v{font-family:'DM Mono',monospace;font-size:8px;color:var(--black);font-weight:500;}
+    .tol-track{height:3px;background:var(--line);border-radius:2px;overflow:hidden;}
+    .tol-fill{height:100%;background:var(--red);border-radius:2px;transition:width .4s;}
+    .tol-fill.lt{background:#bbb;}
+    .c-foot{display:flex;gap:14px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line);}
+    .fi{display:flex;flex-direction:column;gap:2px;}
+    .fk{font-family:'DM Mono',monospace;font-size:7px;color:var(--lt);letter-spacing:1px;text-transform:uppercase;}
+    .fv{font-size:11px;color:var(--dk);font-weight:500;}
+    .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.38);z-index:999;display:flex;justify-content:flex-end;animation:fi .15s ease;}
+    @keyframes fi{from{opacity:0}to{opacity:1}}
+    .drawer{width:440px;max-width:95vw;background:var(--white);border-left:4px solid var(--red);height:100vh;overflow-y:auto;animation:si .2s ease;display:flex;flex-direction:column;}
+    @keyframes si{from{transform:translateX(36px);opacity:0}to{transform:translateX(0);opacity:1}}
+    .d-hdr{background:var(--black);padding:20px 24px;position:sticky;top:0;z-index:10;}
+    .d-close{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:1px;color:rgba(255,255,255,0.45);cursor:pointer;background:none;border:none;float:right;transition:color .15s;padding:2px 0;}
+    .d-close:hover{color:var(--white);}
+    .d-name{font-size:15px;font-weight:600;color:var(--white);margin-bottom:3px;line-height:1.3;padding-right:50px;}
+    .d-loc{font-family:'DM Mono',monospace;font-size:8px;color:rgba(255,255,255,0.45);}
+    .d-comp{display:inline-block;margin-top:8px;font-family:'DM Mono',monospace;font-size:7px;letter-spacing:1px;padding:3px 8px;border-radius:2px;}
+    .dcH{background:rgba(26,107,60,0.28);color:#5dba8a;}
+    .dcM{background:rgba(138,80,0,0.28);color:#d4a040;}
+    .dcL{background:rgba(204,0,0,0.28);color:#ee8888;}
+    .d-body{padding:22px 24px;flex:1;}
+    .d-sec{margin-bottom:22px;}
+    .d-stitle{font-family:'DM Mono',monospace;font-size:8px;letter-spacing:2px;text-transform:uppercase;color:var(--lt);padding-bottom:8px;border-bottom:1px solid var(--line);margin-bottom:12px;}
+    .d-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    .d-item .dk{font-family:'DM Mono',monospace;font-size:8px;color:var(--lt);letter-spacing:1px;text-transform:uppercase;margin-bottom:3px;}
+    .d-item .dv{font-size:12px;color:var(--black);font-weight:500;}
+    .cert-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px;}
+    .cert{display:flex;align-items:center;gap:8px;padding:9px 11px;border-radius:4px;border:1px solid var(--line);}
+    .cert.yes{border-color:#b8dfc8;background:#eaf5ef;}
+    .cert.amb{border-color:#f5d99a;background:#fef5e7;}
+    .ci-dot{width:16px;height:16px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;flex-shrink:0;}
+    .ci-dot.y{background:var(--green);color:var(--white);}
+    .ci-dot.n{background:var(--line);color:var(--lt);}
+    .ci-dot.a{background:var(--amber);color:var(--white);}
+    .ci-name{font-family:'DM Mono',monospace;font-size:9px;font-weight:500;}
+    .ci-name.y{color:var(--green);}
+    .ci-name.n{color:var(--lt);}
+    .ci-name.a{color:var(--amber);}
+    .proc-list{display:flex;flex-direction:column;gap:0;}
+    .proc{display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--line);font-size:12px;color:var(--dk);}
+    .proc:last-child{border-bottom:none;}
+    .proc-dot{width:4px;height:4px;background:var(--red);border-radius:50%;flex-shrink:0;}
+    .sub-pills{display:flex;flex-wrap:wrap;gap:6px;}
+    .sub-pill{font-family:'DM Mono',monospace;font-size:9px;padding:4px 10px;border-radius:3px;border:1px solid var(--red);color:var(--red);background:var(--rl);}
+    .checklist{display:flex;flex-direction:column;gap:9px;}
+    .c-row{display:flex;gap:10px;align-items:flex-start;}
+    .c-num{width:20px;height:20px;border-radius:50%;background:var(--black);color:var(--white);font-family:'DM Mono',monospace;font-size:9px;display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px;}
+    .c-txt{font-size:11px;color:var(--mid);line-height:1.5;}
+    .d-warn{background:var(--rl);border:1px solid #f5b8b8;border-radius:4px;padding:10px 13px;margin-bottom:18px;font-size:11px;color:var(--red);display:flex;gap:8px;align-items:flex-start;line-height:1.5;}
+    .visit-btn{display:flex;align-items:center;justify-content:center;gap:6px;width:100%;font-family:'DM Mono',monospace;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:12px;background:var(--black);color:var(--white);border:none;border-radius:3px;cursor:pointer;text-decoration:none;transition:background .15s;margin-top:4px;}
+    .visit-btn:hover{background:var(--red);}
+    .visit-btn.dis{background:var(--line);color:var(--lt);cursor:default;pointer-events:none;}
+    .empty{padding:80px 28px;text-align:center;}
+    .e-ico{font-size:28px;opacity:.25;margin-bottom:10px;}
+    .e-t{font-size:15px;font-weight:600;margin-bottom:5px;}
+    .e-s{font-size:13px;color:var(--mid);}
+    `;
+
+    function Card({ v, multi, delay, onClick }) {
+      const p = tolPct(v.tn);
+      return (
+        <div className={"card" + (multi ? " mr" : "")} style={{ animationDelay: delay + "ms" }} onClick={onClick}>
+          {multi && <div className="mr-flag">MULTI-ROLE</div>}
+          <div className="c-head">
+            <div className="c-name">{v.name}</div>
+            <div className={"badge b" + v.comp[0]}>{v.comp.toUpperCase()}</div>
+          </div>
+          <div className="c-loc">📍 {v.city} · {region(v.city)}</div>
+          <div className="c-procs">{v.procs.join(" · ")}</div>
+          <div className="c-tags">
+            {v.iso    && <span className="tag tg">ISO 9001</span>}
+            {v.as9100 && <span className="tag tg">AS9100</span>}
+            {v.itar   && <span className="tag ta">ITAR</span>}
+            {multi    && <span className="tag tm">{v.subs.filter(s => s !== "Pending").length} subsystems</span>}
+          </div>
+          <div className="tol-h">
+            <span className="tol-k">Tolerance</span>
+            <span className="tol-v">{v.tol}</span>
+          </div>
+          <div className="tol-track">
+            {v.tn && <div className={"tol-fill" + (p < 50 ? " lt" : "")} style={{ width: p + "%" }} />}
+          </div>
+          <div className="c-foot">
+            <div className="fi"><span className="fk">Lead Time</span><span className="fv">{v.lead}</span></div>
+            <div className="fi"><span className="fk">MOQ</span><span className="fv">{v.moq}</span></div>
+          </div>
+        </div>
+      );
+    }
+
+    function Drawer({ v, multi, onClose }) {
+      const otherSubs = v.subs.filter(s => s !== "Pending");
+      const certs = [
+        { name: "ISO 9001",   t: v.iso    ? "y" : "n" },
+        { name: "IATF 16949", t: "n" },
+        { name: "AS9100",     t: v.as9100 ? "y" : "n" },
+        { name: "ITAR",       t: v.itar   ? "a" : "n" },
+      ];
+      return (
+        <div className="drawer">
+          <div className="d-hdr">
+            <button className="d-close" onClick={onClose}>✕ CLOSE</button>
+            <div className="d-name">{v.name}</div>
+            <div className="d-loc">{v.city} · {region(v.city)}</div>
+            <div className={"d-comp dc" + v.comp[0]}>{v.comp} Profile</div>
+          </div>
+          <div className="d-body">
+            <div className="d-warn">
+              <span>⚠</span>
+              <span>Cert status is claimed, not verified. Request certificate PDFs and confirm with the issuing registrar before placing any PO.</span>
+            </div>
+            <div className="d-sec">
+              <div className="d-stitle">Details</div>
+              <div className="d-grid">
+                {[["Tolerance", v.tol], ["Lead Time", v.lead], ["Min Order", v.moq], ["Region", region(v.city)]].map(([k, val]) => (
+                  <div className="d-item" key={k}><div className="dk">{k}</div><div className="dv">{val}</div></div>
+                ))}
+              </div>
+            </div>
+            <div className="d-sec">
+              <div className="d-stitle">Certifications</div>
+              <div className="cert-grid">
+                {certs.map(c => (
+                  <div key={c.name} className={"cert" + (c.t === "y" ? " yes" : c.t === "a" ? " amb" : "")}>
+                    <div className={"ci-dot " + c.t}>{c.t === "n" ? "–" : "✓"}</div>
+                    <div className={"ci-name " + c.t}>{c.name}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div className="d-sec">
+              <div className="d-stitle">Capabilities</div>
+              <div className="proc-list">
+                {v.procs.map((p, i) => (
+                  <div className="proc" key={i}><div className="proc-dot" />{p}</div>
+                ))}
+              </div>
+            </div>
+            {multi && (
+              <div className="d-sec">
+                <div className="d-stitle">Active Subsystems ({otherSubs.length})</div>
+                <div className="sub-pills">{otherSubs.map(s => <div key={s} className="sub-pill">{s}</div>)}</div>
+              </div>
+            )}
+            <div className="d-sec">
+              <div className="d-stitle">Verification Checklist</div>
+              <div className="checklist">
+                {["Request current ISO / AS9100 certificate PDF from vendor","Verify cert number via IATF or IQNet public registry","Confirm issuing registrar name and scope statement","Check expiry date and site-specific coverage","Schedule site visit or video call before first PO"].map((s, i) => (
+                  <div className="c-row" key={i}><div className="c-num">{i + 1}</div><div className="c-txt">{s}</div></div>
+                ))}
+              </div>
+            </div>
+            {v.url
+              ? <a href={v.url} target="_blank" rel="noopener noreferrer" className="visit-btn">Visit Website →</a>
+              : <div className="visit-btn dis">No website on file</div>}
+          </div>
+        </div>
+      );
+    }
+
+    function App() {
+      const [tab, setTab] = useState("ADAS");
+      const [filters, setFilters] = useState([]);
+      const [search, setSearch] = useState("");
+      const [sel, setSel] = useState(null);
+
+      const deduped = useMemo(() => {
+        const seen = new Map();
+        VENDORS.forEach(v => { if (!seen.has(v.name)) seen.set(v.name, v); });
+        return Array.from(seen.values());
+      }, []);
+
+      const tabV = useMemo(() => {
+        const seen = new Set();
+        return VENDORS.filter(v => {
+          if (!v.subs.includes(tab) || seen.has(v.name)) return false;
+          seen.add(v.name); return true;
+        });
+      }, [tab]);
+
+      const filtered = useMemo(() => {
+        let list = tabV;
+        if (filters.length) list = list.filter(v => filters.every(f => matchFilter(v, f)));
+        if (search.trim()) {
+          const q = search.toLowerCase();
+          list = list.filter(v => v.name.toLowerCase().includes(q) || v.city.toLowerCase().includes(q) || v.procs.some(p => p.toLowerCase().includes(q)));
+        }
+        return list;
+      }, [tabV, filters, search]);
+
+      const counts = useMemo(() => {
+        const m = {};
+        SUBS.forEach(s => {
+          const seen = new Set();
+          m[s] = VENDORS.filter(v => { if (!v.subs.includes(s) || seen.has(v.name)) return false; seen.add(v.name); return true; }).length;
+        });
+        return m;
+      }, []);
+
+      const multiCount = deduped.filter(v => v.subs.filter(s => s !== "Pending").length >= 3).length;
+      const highCount  = deduped.filter(v => v.comp === "High").length;
+      const isMulti    = v => v.subs.filter(s => s !== "Pending").length >= 3;
+      const togFilter  = id => setFilters(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id]);
+
+      return (
+        <>
+          <style>{CSS}</style>
+          <div className="app">
+            <div className="hdr">
+              <div className="hdr-l">
+                <div className="shield" />
+                <div>
+                  <div className="brand">Ferrari Innovation Lab</div>
+                  <div className="brand-sub">Bay Area Supplier Intelligence · Apr 2026</div>
+                </div>
+              </div>
+              <div className="warn-pill">⚠ All certs pending verification</div>
+            </div>
+
+            <div className="metrics">
+              {[
+                { val: deduped.length, lbl: "Total vendors" },
+                { val: multiCount, lbl: "Multi-role champions" },
+                { val: highCount, lbl: "High profile" },
+                { val: "75 mi", lbl: "Radius from San Jose" },
+              ].map(m => (
+                <div className="met" key={m.lbl}>
+                  <div className="mval">{m.val}</div>
+                  <div className="mlbl">{m.lbl}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="tabs">
+              {SUBS.map(s => (
+                <div key={s} className={"tab" + (tab === s ? " on" : "")} onClick={() => { setTab(s); setFilters([]); setSearch(""); }}>
+                  <div className="tab-n">{s}</div>
+                  <div className="tab-c">{counts[s]}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="toolbar">
+              <span className="t-lbl">Filter:</span>
+              {FILTER_DEFS.map(f => (
+                <button key={f.id} className={"chip" + (filters.includes(f.id) ? " on" : "")} onClick={() => togFilter(f.id)}>
+                  {filters.includes(f.id) ? "✓ " : ""}{f.label}
+                </button>
+              ))}
+              <div className="srch-wrap">
+                <span className="sico">⌕</span>
+                <input className="srch" placeholder="Search vendors, processes…" value={search} onChange={e => setSearch(e.target.value)} />
+              </div>
+            </div>
+
+            <div className="rbar">
+              <div className="rinfo">
+                Showing <strong>{filtered.length}</strong> of {tabV.length} vendors in <strong>{tab}</strong>
+                {filters.length > 0 && <span style={{ color: "var(--red)" }}> · {filters.length} filter{filters.length > 1 ? "s" : ""} active</span>}
+              </div>
+              <div className="rdesc">{SUB_DESC[tab].toUpperCase()}</div>
+            </div>
+
+            {filtered.length === 0 ? (
+              <div className="empty">
+                <div className="e-ico">○</div>
+                <div className="e-t">No vendors match</div>
+                <div className="e-s">Try removing a filter or clearing the search.</div>
+              </div>
+            ) : (
+              <div className="grid">
+                {filtered.map((v, i) => (
+                  <Card key={v.name + tab} v={v} multi={isMulti(v)} delay={i * 18} onClick={() => setSel(v)} />
+                ))}
+              </div>
+            )}
+
+            {sel && (
+              <div className="overlay" onClick={e => { if (e.target.className === "overlay") setSel(null); }}>
+                <Drawer v={sel} multi={isMulti(sel)} onClose={() => setSel(null)} />
+              </div>
+            )}
+          </div>
+        </>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>
