@@ -137,6 +137,7 @@ body { font-family: 'DM Sans', sans-serif; background: var(--white); color: var(
 .c-num { width: 20px; height: 20px; border-radius: 50%; background: var(--black); color: var(--white); font-family: 'DM Mono', monospace; font-size: 9px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; margin-top: 1px; }
 .c-txt { font-size: 11px; color: var(--mid); line-height: 1.5; }
 .d-warn { background: var(--rl); border: 1px solid #f5b8b8; border-radius: 4px; padding: 10px 13px; margin-bottom: 18px; font-size: 11px; color: var(--red); display: flex; gap: 8px; align-items: flex-start; line-height: 1.5; }
+.d-note { font-size: 11px; color: var(--lt); line-height: 1.6; }
 .visit-btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; font-family: 'DM Mono', monospace; font-size: 10px; letter-spacing: 1.5px; text-transform: uppercase; padding: 12px; background: var(--black); color: var(--white); border: none; border-radius: 3px; cursor: pointer; text-decoration: none; transition: background .15s; margin-top: 4px; }
 .visit-btn:hover { background: var(--red); }
 .visit-btn.dis { background: var(--line); color: var(--lt); cursor: default; pointer-events: none; }

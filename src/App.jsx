@@ -19,7 +19,7 @@ export default function App() {
 
   // Auto-load the bundled Excel file on first render
   useEffect(() => {
-    parseExcelUrl("/vendors.xlsx")
+    parseExcelUrl("/data/vendors.xlsx")
       .then(data => { setVendors(data); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);

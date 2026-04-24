@@ -35,7 +35,9 @@ export default function Drawer({ v, multi, onClose }) {
         <div className="d-sec">
           <div className="d-stitle">Details</div>
           <div className="d-grid">
-            {[["Tolerance", v.tol], ["Lead Time", v.lead], ["Min Order", v.moq], ["Region", region(v.city)]].map(([k, val]) => (
+            {[["Tolerance", v.tol], ["Lead Time", v.lead], ["Min Order", v.moq], ["Region", region(v.city)],
+              ...(v.phone ? [["Phone", v.phone]] : [])
+            ].map(([k, val]) => (
               <div className="d-item" key={k}>
                 <div className="dk">{k}</div>
                 <div className="dv">{val}</div>
@@ -87,6 +89,13 @@ export default function Drawer({ v, multi, onClose }) {
             ))}
           </div>
         </div>
+
+        {v.notes && (
+          <div className="d-sec">
+            <div className="d-stitle">Notes</div>
+            <div className="d-note">{v.notes}</div>
+          </div>
+        )}
 
         {v.url
           ? <a href={v.url} target="_blank" rel="noopener noreferrer" className="visit-btn">Visit Website →</a>

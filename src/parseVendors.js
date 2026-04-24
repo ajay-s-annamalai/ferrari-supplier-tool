@@ -1,37 +1,148 @@
 import * as XLSX from "xlsx";
 
 /**
- * Expected Excel columns (case-insensitive, order doesn't matter):
+ * Multi-sheet Ferrari vendor database parser.
  *
- * Name          | Vendor name
- * City          | e.g. "San Jose, CA"
- * Tolerance     | Display string e.g. '±0.0005"'
- * Tolerance_Num | Numeric value e.g. 0.0005 (optional — derived if omitted)
- * Lead_Time     | e.g. "2–4 weeks"
- * MOQ           | e.g. "1 pc"
- * ISO_9001      | TRUE / FALSE / Yes / No / 1 / 0
- * AS9100        | TRUE / FALSE / Yes / No / 1 / 0
- * ITAR          | TRUE / FALSE / Yes / No / 1 / 0
- * Profile       | High / Medium / Low
- * Subsystems    | Comma-separated: "ADAS, Battery, Mobility"
- * Processes     | Comma-separated: "CNC milling, CMM, EDM"
- * URL           | https://... (optional)
+ * Sheet layout per data sheet:
+ *   Row 0: sheet title
+ *   Row 1: focus blurb
+ *   Row 2: baseline requirements note
+ *   Row 3: empty
+ *   Row 4: column headers  ← actual header row
+ *   Row 5+: category separator rows (first cell starts with "Category") or data rows
+ *
+ * Unverified-Pending sheet:
+ *   Row 0: title
+ *   Row 1: explanation
+ *   Row 2: empty
+ *   Row 3: column headers
+ *   Row 4+: data rows
  */
 
-function bool(val) {
-  if (val === null || val === undefined || val === "") return false;
-  if (typeof val === "boolean") return val;
+const DATA_SHEETS = ["ADAS", "Electrification", "Battery", "Materials", "Mobility"];
+const PENDING_SHEET = "Unverified-Pending";
+
+function claimed(val) {
+  if (!val && val !== 0) return false;
   const s = String(val).trim().toLowerCase();
-  return s === "true" || s === "yes" || s === "1";
+  return s.startsWith("claimed") || s === "yes" || s === "true" || s === "1";
 }
 
-function list(val) {
-  if (!val) return [];
-  return String(val).split(",").map(s => s.trim()).filter(Boolean);
+function parseTolNum(val) {
+  if (!val) return null;
+  const m = String(val).match(/([0-9]*\.?[0-9]+)/);
+  return m ? parseFloat(m[1]) : null;
 }
 
-function normalizeKey(k) {
-  return k.toLowerCase().replace(/[\s_-]+/g, "_");
+function splitProcs(primary, secondary) {
+  const parts = [];
+  if (primary) parts.push(...String(primary).split(";").map(s => s.trim()).filter(Boolean));
+  if (secondary) parts.push(...String(secondary).split(";").map(s => s.trim()).filter(Boolean));
+  return parts;
+}
+
+function parseDataSheet(ws, sheetName) {
+  const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "", header: 1 });
+  // Row 4 is the header row
+  const headerRow = rawRows[4];
+  if (!headerRow) return [];
+
+  const headers = headerRow.map(h => String(h).trim());
+
+  const vendors = [];
+  for (let i = 5; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    const name = String(row[0] || "").trim();
+    if (!name) continue;
+    // Skip category separator rows
+    if (name.startsWith("Category")) continue;
+
+    const get = (label) => {
+      const idx = headers.indexOf(label);
+      return idx >= 0 ? row[idx] : "";
+    };
+
+    const tolStr = String(get("Tightest Tolerance") || "—").trim();
+    const compRaw = String(get("Profile Completeness") || "Low").trim();
+
+    vendors.push({
+      name,
+      city:   String(get("City") || "").trim(),
+      tol:    tolStr,
+      tn:     parseTolNum(tolStr),
+      lead:   String(get("Typical Lead Time") || "—").trim(),
+      moq:    String(get("Min Batch Size") || "—").trim(),
+      iso:    claimed(get("ISO 9001 Status")),
+      as9100: claimed(get("AS9100 Status")),
+      itar:   claimed(get("ITAR Status")),
+      comp:   compRaw || "Low",
+      subs:   [sheetName],
+      procs:  splitProcs(get("Primary Processes"), get("Secondary Processes")),
+      url:    String(get("Website") || "").trim(),
+      phone:  String(get("Phone") || "").trim(),
+      notes:  String(get("Notes") || "").trim(),
+    });
+  }
+  return vendors;
+}
+
+function parsePendingSheet(ws) {
+  const rawRows = XLSX.utils.sheet_to_json(ws, { defval: "", header: 1 });
+  // Row 3 is the header row
+  const headerRow = rawRows[3];
+  if (!headerRow) return [];
+
+  const headers = headerRow.map(h => String(h).trim());
+
+  const vendors = [];
+  for (let i = 4; i < rawRows.length; i++) {
+    const row = rawRows[i];
+    const name = String(row[0] || "").trim();
+    if (!name) continue;
+
+    const get = (label) => {
+      const idx = headers.findIndex(h => h.toLowerCase().startsWith(label.toLowerCase()));
+      return idx >= 0 ? row[idx] : "";
+    };
+
+    vendors.push({
+      name,
+      city:   String(get("City") || "").trim(),
+      tol:    "—",
+      tn:     null,
+      lead:   "—",
+      moq:    "—",
+      iso:    false,
+      as9100: false,
+      itar:   false,
+      comp:   "Low",
+      subs:   ["Pending"],
+      procs:  [],
+      url:    String(get("Website") || "").trim(),
+      phone:  "",
+      notes:  String(get("Reason") || "").trim(),
+    });
+  }
+  return vendors;
+}
+
+function parseBuffer(buf) {
+  const wb = XLSX.read(buf, { type: "array" });
+
+  const allVendors = [];
+
+  // Parse each data sheet
+  DATA_SHEETS.forEach(sheetName => {
+    const ws = wb.Sheets[sheetName];
+    if (!ws) return;
+    allVendors.push(...parseDataSheet(ws, sheetName));
+  });
+
+  // Parse pending sheet
+  const pendingWs = wb.Sheets[PENDING_SHEET];
+  if (pendingWs) allVendors.push(...parsePendingSheet(pendingWs));
+
+  return allVendors;
 }
 
 export async function parseExcelUrl(url) {
@@ -44,40 +155,4 @@ export async function parseExcelUrl(url) {
 export async function parseExcelFile(file) {
   const buf = await file.arrayBuffer();
   return parseBuffer(buf);
-}
-
-async function parseBuffer(buf) {
-  const wb = XLSX.read(buf, { type: "array" });
-  const ws = wb.Sheets[wb.SheetNames[0]];
-  const rows = XLSX.utils.sheet_to_json(ws, { defval: "" });
-
-  return rows
-    .map(row => {
-      // normalize keys so column header casing doesn't matter
-      const r = {};
-      Object.entries(row).forEach(([k, v]) => { r[normalizeKey(k)] = v; });
-
-      const name = String(r.name || "").trim();
-      if (!name) return null;
-
-      const tnRaw = r.tolerance_num ?? r.tolerancenum ?? r.tol_num ?? null;
-      const tn = tnRaw !== "" && tnRaw !== null ? parseFloat(tnRaw) || null : null;
-
-      return {
-        name,
-        city:    String(r.city || "").trim(),
-        tol:     String(r.tolerance || r.tol || "—").trim(),
-        tn,
-        lead:    String(r.lead_time || r.leadtime || r.lead || "—").trim(),
-        moq:     String(r.moq || "—").trim(),
-        iso:     bool(r.iso_9001 ?? r.iso9001 ?? r.iso),
-        as9100:  bool(r.as9100),
-        itar:    bool(r.itar),
-        comp:    String(r.profile || r.comp || "Low").trim(),
-        subs:    list(r.subsystems || r.subs),
-        procs:   list(r.processes || r.procs),
-        url:     String(r.url || "").trim(),
-      };
-    })
-    .filter(Boolean);
 }
