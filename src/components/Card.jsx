@@ -13,6 +13,7 @@ export default function Card({ v, multi, delay, onClick }) {
       <div className="c-procs">{v.procs.join(" · ")}</div>
       <div className="c-tags">
         {v.iso    && <span className="tag tg">ISO 9001</span>}
+        {v.iatf   && <span className="tag tg">IATF 16949</span>}
         {v.as9100 && <span className="tag tg">AS9100</span>}
         {v.itar   && <span className="tag ta">ITAR</span>}
         {multi    && <span className="tag tm">{v.subs.filter(s => s !== "Pending").length} subsystems</span>}

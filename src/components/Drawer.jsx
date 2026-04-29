@@ -12,7 +12,7 @@ export default function Drawer({ v, multi, onClose }) {
   const otherSubs = v.subs.filter(s => s !== "Pending");
   const certs = [
     { name: "ISO 9001",   t: v.iso    ? "y" : "n" },
-    { name: "IATF 16949", t: "n" },
+    { name: "IATF 16949", t: v.iatf   ? "y" : "n" },
     { name: "AS9100",     t: v.as9100 ? "y" : "n" },
     { name: "ITAR",       t: v.itar   ? "a" : "n" },
   ];
@@ -36,7 +36,9 @@ export default function Drawer({ v, multi, onClose }) {
           <div className="d-stitle">Details</div>
           <div className="d-grid">
             {[["Tolerance", v.tol], ["Lead Time", v.lead], ["Min Order", v.moq], ["Region", region(v.city)],
-              ...(v.phone ? [["Phone", v.phone]] : [])
+              ...(v.phone      ? [["Phone",       v.phone]]      : []),
+              ...(v.materials  ? [["Materials",   v.materials]]  : []),
+              ...(v.cadFormats ? [["CAD Formats", v.cadFormats]] : [])
             ].map(([k, val]) => (
               <div className="d-item" key={k}>
                 <div className="dk">{k}</div>

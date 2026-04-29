@@ -3,6 +3,8 @@ import { matchFilter } from "./utils";
 import { parseExcelFile, parseExcelUrl } from "./parseVendors";
 import Card from "./components/Card";
 import Drawer from "./components/Drawer";
+import LabTable from "./components/LabTable";
+import VCTable from "./components/VCTable";
 
 const FILTER_DEFS = [
   { id: "high",   label: "High Profile" },
@@ -14,13 +16,15 @@ const FILTER_DEFS = [
 
 export default function App() {
   const [vendors, setVendors] = useState([]);
+  const [labs, setLabs] = useState([]);
+  const [vcs, setVcs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   // Auto-load the bundled Excel file on first render
   useEffect(() => {
-    parseExcelUrl("/data/vendors.xlsx")
-      .then(data => { setVendors(data); setLoading(false); })
+    parseExcelUrl("/data/vendors_ferrari_innovation_lab.xlsx")
+      .then(({ vendors, labs, vcs }) => { setVendors(vendors); setLabs(labs); setVcs(vcs); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, []);
   const [tab, setTab] = useState(null);
@@ -28,6 +32,10 @@ export default function App() {
   const [search, setSearch] = useState("");
   const [sel, setSel] = useState(null);
   const fileInputRef = useRef();
+
+  const LABS_TAB = "Research Labs";
+  const VC_TAB = "VC — Automotive Tech";
+  const isVendorTab = tab => tab !== LABS_TAB && tab !== VC_TAB;
 
   // Derive tabs dynamically from the data
   const SUBS = useMemo(() => {
@@ -41,8 +49,10 @@ export default function App() {
       if (bi !== -1) return 1;
       return a.localeCompare(b);
     });
+    if (labs.length > 0) sorted.push(LABS_TAB);
+    if (vcs.length > 0) sorted.push(VC_TAB);
     return sorted;
-  }, [vendors]);
+  }, [vendors, labs, vcs]);
 
   const activeTab = tab ?? SUBS[0] ?? null;
 
@@ -62,6 +72,28 @@ export default function App() {
     });
   }, [vendors, activeTab]);
 
+  const filteredLabs = useMemo(() => {
+    if (!search.trim()) return labs;
+    const q = search.toLowerCase();
+    return labs.filter(l =>
+      l.name.toLowerCase().includes(q) ||
+      l.institution.toLowerCase().includes(q) ||
+      l.city.toLowerCase().includes(q) ||
+      l.focus.toLowerCase().includes(q)
+    );
+  }, [labs, search]);
+
+  const filteredVcs = useMemo(() => {
+    if (!search.trim()) return vcs;
+    const q = search.toLowerCase();
+    return vcs.filter(vc =>
+      vc.name.toLowerCase().includes(q) ||
+      vc.city.toLowerCase().includes(q) ||
+      vc.thesis.toLowerCase().includes(q) ||
+      vc.portfolio.toLowerCase().includes(q)
+    );
+  }, [vcs, search]);
+
   const filtered = useMemo(() => {
     let list = tabVendors;
     if (filters.length) list = list.filter(v => filters.every(f => matchFilter(v, f)));
@@ -79,15 +111,21 @@ export default function App() {
   const counts = useMemo(() => {
     const m = {};
     SUBS.forEach(s => {
-      const seen = new Set();
-      m[s] = vendors.filter(v => {
-        if (!v.subs.includes(s) || seen.has(v.name)) return false;
-        seen.add(v.name);
-        return true;
-      }).length;
+      if (s === LABS_TAB) {
+        m[s] = labs.length;
+      } else if (s === VC_TAB) {
+        m[s] = vcs.length;
+      } else {
+        const seen = new Set();
+        m[s] = vendors.filter(v => {
+          if (!v.subs.includes(s) || seen.has(v.name)) return false;
+          seen.add(v.name);
+          return true;
+        }).length;
+      }
     });
     return m;
-  }, [vendors, SUBS]);
+  }, [vendors, labs, vcs, SUBS]);
 
   const multiCount = deduped.filter(v => v.subs.filter(s => s !== "Pending").length >= 3).length;
   const highCount  = deduped.filter(v => v.comp === "High").length;
@@ -99,9 +137,11 @@ export default function App() {
     setLoading(true);
     setError(null);
     try {
-      const data = await parseExcelFile(file);
-      if (data.length === 0) throw new Error("No vendor rows found. Check that your sheet has a header row and at least one data row.");
+      const { vendors: data, labs: labData, vcs: vcData } = await parseExcelFile(file);
+      if (data.length === 0 && labData.length === 0 && vcData.length === 0) throw new Error("No data rows found. Check that your sheet has a header row and at least one data row.");
       setVendors(data);
+      setLabs(labData);
+      setVcs(vcData);
       setTab(null);
       setFilters([]);
       setSearch("");
@@ -181,31 +221,41 @@ export default function App() {
       </div>
 
       <div className="toolbar">
-        <span className="t-lbl">Filter:</span>
-        {FILTER_DEFS.map(f => (
-          <button key={f.id} className={"chip" + (filters.includes(f.id) ? " on" : "")} onClick={() => togFilter(f.id)}>
-            {filters.includes(f.id) ? "✓ " : ""}{f.label}
-          </button>
-        ))}
-        <div className="srch-wrap">
+        {isVendorTab(activeTab) && (
+          <>
+            <span className="t-lbl">Filter:</span>
+            {FILTER_DEFS.map(f => (
+              <button key={f.id} className={"chip" + (filters.includes(f.id) ? " on" : "")} onClick={() => togFilter(f.id)}>
+                {filters.includes(f.id) ? "✓ " : ""}{f.label}
+              </button>
+            ))}
+          </>
+        )}
+        <div className="srch-wrap" style={{ marginLeft: isVendorTab(activeTab) ? "auto" : 0 }}>
           <span className="sico">⌕</span>
           <input
             className="srch"
-            placeholder="Search vendors, processes…"
+            placeholder={isVendorTab(activeTab) ? "Search vendors, processes…" : "Search…"}
             value={search}
             onChange={e => setSearch(e.target.value)}
           />
         </div>
       </div>
 
-      <div className="rbar">
-        <div className="rinfo">
-          Showing <strong>{filtered.length}</strong> of {tabVendors.length} vendors in <strong>{activeTab}</strong>
-          {filters.length > 0 && <span style={{ color: "var(--red)" }}> · {filters.length} filter{filters.length > 1 ? "s" : ""} active</span>}
+      {isVendorTab(activeTab) && (
+        <div className="rbar">
+          <div className="rinfo">
+            Showing <strong>{filtered.length}</strong> of {tabVendors.length} vendors in <strong>{activeTab}</strong>
+            {filters.length > 0 && <span style={{ color: "var(--red)" }}> · {filters.length} filter{filters.length > 1 ? "s" : ""} active</span>}
+          </div>
         </div>
-      </div>
+      )}
 
-      {filtered.length === 0 ? (
+      {activeTab === LABS_TAB ? (
+        <LabTable labs={filteredLabs} />
+      ) : activeTab === VC_TAB ? (
+        <VCTable vcs={filteredVcs} />
+      ) : filtered.length === 0 ? (
         <div className="empty">
           <div className="e-ico">○</div>
           <div className="e-t">No vendors match</div>
