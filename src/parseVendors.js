@@ -143,17 +143,17 @@ function parseLabsSheet(ws) {
 
   const headers = headerRow.map(h => String(h).trim());
 
-  const get = (label) => {
-    const idx = headers.indexOf(label);
-    return idx >= 0 ? row[idx] : "";
-  };
-
   const labs = [];
   for (let i = 3; i < rawRows.length; i++) {
     const row = rawRows[i];
     const name = String(row[0] || "").trim();
     if (!name) continue;
     if (name.startsWith("SECTION")) continue;
+
+    const get = (label) => {
+      const idx = headers.indexOf(label);
+      return idx >= 0 ? row[idx] : "";
+    };
 
     labs.push({
       name,
@@ -186,17 +186,17 @@ function parseVCSheet(ws) {
 
   const headers = headerRow.map(h => String(h).trim());
 
-  const get = (label) => {
-    const idx = headers.indexOf(label);
-    return idx >= 0 ? row[idx] : "";
-  };
-
   const vcs = [];
   for (let i = 3; i < rawRows.length; i++) {
     const row = rawRows[i];
     const name = String(row[0] || "").trim();
     if (!name) continue;
     if (name.startsWith("SECTION")) continue;
+
+    const get = (label) => {
+      const idx = headers.indexOf(label);
+      return idx >= 0 ? row[idx] : "";
+    };
 
     vcs.push({
       name,

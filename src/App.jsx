@@ -171,9 +171,9 @@ export default function App() {
     return (
       <div className="empty">
         <div className="e-ico">⚠</div>
-        <div className="e-t">Could not load vendors.xlsx</div>
+        <div className="e-t">Could not load supplier database</div>
         <div className="e-s" style={{ color: "var(--red)", marginBottom: 16 }}>{error}</div>
-        <div className="e-s">Make sure <code>public/vendors.xlsx</code> exists in the repo.</div>
+        <div className="e-s">Make sure <code>public/data/vendors_ferrari_innovation_lab.xlsx</code> exists in the repo.</div>
       </div>
     );
   }
